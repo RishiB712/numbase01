@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NumBase — Number System Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.birds.min.js"></script>
+
+<style>
+  /* ============================================================
+     CSS CUSTOM PROPERTIES — Ultra Transparent Liquid Glass
+  ============================================================ */
+  :root {
+    --bg:            #eafaf1; 
+    --bg2:           #d1f2eb;
+    
+    /* Ultra-transparent liquid surfaces */
+    --surface:       rgba(255, 255, 255, 0.03);
+    --surface-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.01) 100%);
+    --surface-hover: rgba(255, 255, 255, 0.15);
+    
+    /* Softened reflection borders for clarity */
+    --border:        rgba(255, 255, 255, 0.2);
+    --border-shine:  rgba(255, 255, 255, 0.4);
+    --border-focus:  rgba(39, 174, 96, 0.65);
+    
+    --accent:        #27ae60; 
+    --accent2:       #2ecc71; 
+    --accent-glow:   rgba(39, 174, 96, 0.25);
+    --danger:        #e74c3c;
+    --warn:          #f39c12;
+    --text-primary:  #1e392a; 
+    --text-secondary:#2c533e;
+    --text-muted:    #5a7c6b;
+    --mono:          'Space Mono', monospace;
+    --sans:          'DM Sans', sans-serif;
+    --radius:        16px;
+    --radius-sm:     10px;
+    --radius-lg:     24px;
+    
+    /* Reduced blur so background birds are highly visible */
+    --blur:          blur(10px);
+    --trans:         0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  /* ============================================================
+     RESET & BASE
+  ============================================================ */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { font-size: 16px; scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Vanta Background Container */
+  #vanta-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    pointer-events: none; 
+  }
+
+  /* ============================================================
+     LAYOUT
+  ============================================================ */
+  .app-wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 36px 20px 40px;
+  }
+
+  /* ============================================================
+     HEADER
+  ============================================================ */
+  .app-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .logo-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .logo-icon {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0.05));
+    backdrop-filter: var(--blur);
+    border: 1px solid var(--border-shine);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+    flex-shrink: 0;
+    box-shadow: 0 8px 20px rgba(39, 174, 96, 0.15);
+  }
+
+  .app-title {
+    font-family: var(--mono);
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+    text-shadow: 0 2px 10px rgba(255,255,255,0.8);
+  }
+
+  .app-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+
+  /* ============================================================
+     TAB NAVIGATION
+  ============================================================ */
+  .tab-nav {
+    display: flex;
+    gap: 4px;
+    background: var(--surface-glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 6px;
+    margin-bottom: 28px;
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    box-shadow: 0 8px 32px rgba(39, 174, 96, 0.05);
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-radius: calc(var(--radius-lg) - 6px);
+    cursor: pointer;
+    transition: all var(--trans);
+    position: relative;
+  }
+
+  .tab-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.15); }
+
+  .tab-btn.active {
+    background: rgba(255,255,255,0.4);
+    color: var(--accent);
+    border: 1px solid var(--border-shine);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+  }
+
+  .tab-btn .tab-icon { margin-right: 6px; font-size: 1rem; }
+
+  /* ============================================================
+     PANELS & LIQUID GLASS CARD
+  ============================================================ */
+  .panel {
+    display: none;
+    animation: fadeSlideUp 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  .panel.active { display: block; }
+
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .glass-card {
+    background: var(--surface-glass);
+    border: 1px solid var(--border);
+    border-top: 1px solid var(--border-shine);
+    border-left: 1px solid var(--border-shine);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.05);
+  }
+
+  .card-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  /* ============================================================
+     CONVERTER GRID & INPUTS
+  ============================================================ */
+  .converter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 580px) {
+    .converter-grid { grid-template-columns: 1fr; }
+  }
+
+  .bcd-full { grid-column: 1 / -1; }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .field-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .field-label .base-badge {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.4);
+  }
+
+  .badge-bin  { color: #27ae60; }
+  .badge-oct  { color: #d35400; }
+  .badge-dec  { color: #2980b9; }
+  .badge-hex  { color: #8e44ad; }
+  .badge-bcd  { color: #c0392b; }
+
+  .field-input {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-family: var(--mono);
+    font-size: 1.05rem;
+    font-weight: 600;
+    outline: none;
+    transition: all var(--trans);
+    caret-color: var(--accent);
+  }
+
+  .field-input::placeholder { color: var(--text-muted); font-size: 0.85rem; opacity: 0.5; }
+
+  .field-input:hover {
+    background: rgba(255,255,255,0.2);
+    border-color: var(--border-shine);
+  }
+
+  .field-input:focus {
+    border-color: var(--accent);
+    background: rgba(255,255,255,0.3);
+    box-shadow: 0 0 0 4px var(--accent-glow);
+  }
+
+  .field-input.error {
+    border-color: rgba(231,76,60,0.5);
+    box-shadow: 0 0 0 4px rgba(231,76,60,0.15);
+  }
+
+  /* ============================================================
+     CONVERTER BIT DISPLAY
+  ============================================================ */
+  .bit-display {
+    margin-top: 24px;
+    padding: 20px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: 50px;
+    align-items: center;
+  }
+
+  .bit-group {
+    display: flex;
+    gap: 3px;
+  }
+
+  .bit {
+    width: 24px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+
+  .bit.one  { background: var(--accent); color: #fff; box-shadow: 0 4px 10px rgba(39,174,96,0.3); }
+  .bit.zero { background: rgba(255,255,255,0.2); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.3); }
+
+  .bit-sep {
+    width: 1px;
+    background: var(--border);
+    margin: 2px 6px;
+    align-self: stretch;
+  }
+
+  .bit-display-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 10px;
+  }
+
+  /* ============================================================
+     CALCULATOR SECTION
+  ============================================================ */
+  .calc-section { display: flex; flex-direction: column; gap: 20px; }
+
+  .calc-operands {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 16px;
+    align-items: end;
+  }
+
+  @media (max-width: 500px) {
+    .calc-operands { grid-template-columns: 1fr; }
+    .op-btn-group  { flex-direction: row; justify-content: center; }
+  }
+
+  .op-btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .op-btn {
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: rgba(255,255,255,0.1);
+    color: var(--text-secondary);
+    font-family: var(--mono);
+    font-size: 1.3rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--trans);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .op-btn:hover {
+    background: rgba(255,255,255,0.3);
+    color: var(--text-primary);
+    border-color: var(--border-shine);
+  }
+
+  .op-btn.selected {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    box-shadow: 0 6px 16px var(--accent-glow);
+  }
+
+  /* Base selectors row */
+  .base-selectors {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .select-group { display: flex; flex-direction: column; gap: 8px; }
+
+  .select-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .base-select {
+    width: 100%;
+    padding: 13px 16px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231e392a' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 32px;
+    transition: all var(--trans);
+  }
+
+  .base-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-glow);
+    background: rgba(255,255,255,0.3);
+  }
+
+  .base-select option {
+    background: #fff;
+    color: var(--text-primary);
+  }
+
+  /* Calculate button */
+  .calc-btn-row {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  .btn-primary {
+    padding: 14px 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: var(--radius);
+    color: #fff;
+    font-family: var(--sans);
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: all var(--trans);
+    box-shadow: 0 8px 25px rgba(39, 174, 96, 0.3);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(39, 174, 96, 0.4);
+    border-color: #fff;
+  }
+
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-secondary {
+    padding: 14px 28px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-secondary);
+    font-family: var(--sans);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--trans);
+  }
+
+  .btn-secondary:hover {
+    background: rgba(255,255,255,0.3);
+    color: var(--text-primary);
+    border-color: var(--border-shine);
+  }
+
+  /* Result display */
+  .result-display {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid var(--border-shine);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    transition: all var(--trans);
+    position: relative;
+    overflow: hidden;
+    min-height: 95px;
+  }
+
+  .result-display.has-result {
+    border-color: var(--accent);
+    background: rgba(255,255,255,0.3);
+    box-shadow: 0 8px 30px var(--accent-glow);
+  }
+
+  .result-display.has-error {
+    border-color: rgba(231,76,60,0.5);
+    box-shadow: 0 4px 20px rgba(231,76,60,0.1);
+  }
+
+  .result-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .result-value {
+    font-family: var(--mono);
+    font-size: clamp(1.6rem, 5vw, 2.4rem);
+    font-weight: 700;
+    color: var(--text-primary);
+    word-break: break-all;
+    letter-spacing: 0.05em;
+    transition: all 0.3s;
+    text-shadow: 0 2px 8px rgba(255,255,255,0.4);
+  }
+
+  .result-value.error-val { color: var(--danger); font-size: 1.2rem; }
+
+  .result-meta {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+
+  /* ============================================================
+     INFO PANEL CHIPS
+  ============================================================ */
+  .info-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px;
+    margin-top: 24px;
+  }
+
+  .info-chip {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid var(--border);
+    border-top: 1px solid var(--border-shine);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .info-chip-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .info-chip-value {
+    font-family: var(--mono);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent);
+    word-break: break-all;
+  }
+
+  /* ============================================================
+     FOOTER
+  ============================================================ */
+  .app-footer {
+    text-align: center;
+    margin-top: 48px;
+    padding-top: 28px;
+    border-top: 1px solid rgba(39, 174, 96, 0.15);
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .app-footer strong {
+    color: var(--text-primary);
+    font-weight: 700;
+  }
+
+  .app-footer a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: color var(--trans);
+  }
+
+  .app-footer a:hover {
+    color: var(--accent2);
+  }
+
+  .app-footer .footer-sub {
+    margin-top: 8px;
+    font-size: 0.85rem;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(39,174,96,0.3); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(39,174,96,0.6); }
+
+  /* Focus outline */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  .mt-18 { margin-top: 18px; }
+  .mt-10 { margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<div id="vanta-bg"></div>
+
+<div class="app-wrapper">
+
+  <header class="app-header">
+    <div class="logo-row">
+      <div class="logo-icon">01</div>
+      <h1 class="app-title">NumBase</h1>
+    </div>
+    <p class="app-subtitle">Number System Calculator &amp; Converter</p>
+  </header>
+
+  <nav class="tab-nav" role="tablist" aria-label="Main sections">
+    <button class="tab-btn active" role="tab" aria-selected="true"
+            aria-controls="panel-converter" id="tab-converter"
+            onclick="switchTab('converter')">
+      <span class="tab-icon">⇄</span> Converter
+    </button>
+    <button class="tab-btn" role="tab" aria-selected="false"
+            aria-controls="panel-calculator" id="tab-calculator"
+            onclick="switchTab('calculator')">
+      <span class="tab-icon">⊕</span> Calculator
+    </button>
+  </nav>
+
+  <section class="panel active" id="panel-converter" role="tabpanel" aria-labelledby="tab-converter">
+    <div class="glass-card">
+      <div class="card-title">Base Converter</div>
+
+      <div class="converter-grid">
+        <div class="field-group">
+          <label class="field-label" for="conv-bin">
+            Binary <span class="base-badge badge-bin">BASE 2</span>
+          </label>
+          <input class="field-input" id="conv-bin" type="text"
+                 placeholder="e.g. 1010" autocomplete="off" spellcheck="false"
+                 data-base="2" oninput="onConverterInput(this)" />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="conv-oct">
+            Octal <span class="base-badge badge-oct">BASE 8</span>
+          </label>
+          <input class="field-input" id="conv-oct" type="text"
+                 placeholder="e.g. 12" autocomplete="off" spellcheck="false"
+                 data-base="8" oninput="onConverterInput(this)" />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="conv-dec">
+            Decimal <span class="base-badge badge-dec">BASE 10</span>
+          </label>
+          <input class="field-input" id="conv-dec" type="text"
+                 placeholder="e.g. 10" autocomplete="off" spellcheck="false"
+                 data-base="10" oninput="onConverterInput(this)" />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="conv-hex">
+            Hexadecimal <span class="base-badge badge-hex">BASE 16</span>
+          </label>
+          <input class="field-input" id="conv-hex" type="text"
+                 placeholder="e.g. A" autocomplete="off" spellcheck="false"
+                 data-base="16" oninput="onConverterInput(this)"
+                 style="text-transform:uppercase" />
+        </div>
+
+        <div class="field-group bcd-full">
+          <label class="field-label" for="conv-bcd">
+            BCD — Binary Coded Decimal <span class="base-badge badge-bcd">4-BIT GROUPS</span>
+          </label>
+          <input class="field-input" id="conv-bcd" type="text"
+                 placeholder="e.g. 0001 0000" autocomplete="off" spellcheck="false"
+                 data-base="bcd" oninput="onConverterInput(this)" />
+        </div>
+      </div>
+
+      <div class="mt-18">
+        <div class="bit-display" id="bit-display" aria-label="Binary bit visualizer">
+          <span style="color:var(--text-muted);font-size:0.85rem">
+            Type a number above to visualize its bits…
+          </span>
+        </div>
+        <div class="bit-display-label mt-10">Binary Bit Visualizer (8-bit groups)</div>
+      </div>
+
+      <div class="info-row" id="info-chips">
+        <div class="info-chip">
+          <span class="info-chip-label">Decimal</span>
+          <span class="info-chip-value" id="chip-dec">—</span>
+        </div>
+        <div class="info-chip">
+          <span class="info-chip-label">Bit Length</span>
+          <span class="info-chip-value" id="chip-bits">—</span>
+        </div>
+        <div class="info-chip">
+          <span class="info-chip-label">Byte Value</span>
+          <span class="info-chip-value" id="chip-bytes">—</span>
+        </div>
+        <div class="info-chip">
+          <span class="info-chip-label">Is Even?</span>
+          <span class="info-chip-value" id="chip-even">—</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-calculator" role="tabpanel" aria-labelledby="tab-calculator">
+    <div class="glass-card">
+      <div class="card-title">Arithmetic Calculator</div>
+      <div class="calc-section">
+
+        <div class="base-selectors">
+          <div class="select-group">
+            <label class="select-label" for="calc-input-base">Input Base (Operands)</label>
+            <select class="base-select" id="calc-input-base" onchange="onCalcBaseChange(); calculate()">
+              <option value="2">Binary (Base 2)</option>
+              <option value="8">Octal (Base 8)</option>
+              <option value="10" selected>Decimal (Base 10)</option>
+              <option value="16">Hexadecimal (Base 16)</option>
+              <option value="bcd">BCD</option>
+            </select>
+          </div>
+          <div class="select-group">
+            <label class="select-label" for="calc-output-base">Output Base (Result)</label>
+            <select class="base-select" id="calc-output-base" onchange="calculate()">
+              <option value="2">Binary (Base 2)</option>
+              <option value="8">Octal (Base 8)</option>
+              <option value="10" selected>Decimal (Base 10)</option>
+              <option value="16">Hexadecimal (Base 16)</option>
+              <option value="bcd">BCD</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="calc-operands">
+          <div class="field-group">
+            <label class="field-label" for="calc-a">Operand A</label>
+            <input class="field-input" id="calc-a" type="text"
+                   placeholder="First number" autocomplete="off" spellcheck="false"
+                   oninput="onCalcInputValidate(this); calculate()" />
+          </div>
+
+          <div class="op-btn-group" role="group" aria-label="Operation selector">
+            <button class="op-btn selected" data-op="+" onclick="selectOp(this)" title="Add">+</button>
+            <button class="op-btn" data-op="-" onclick="selectOp(this)" title="Subtract">−</button>
+            <button class="op-btn" data-op="*" onclick="selectOp(this)" title="Multiply">×</button>
+            <button class="op-btn" data-op="/" onclick="selectOp(this)" title="Divide">÷</button>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="calc-b">Operand B</label>
+            <input class="field-input" id="calc-b" type="text"
+                   placeholder="Second number" autocomplete="off" spellcheck="false"
+                   oninput="onCalcInputValidate(this); calculate()" />
+          </div>
+        </div>
+
+        <div class="calc-btn-row">
+          <button class="btn-primary" onclick="calculate()" id="calc-go-btn">Calculate →</button>
+          <button class="btn-secondary" onclick="clearCalc()">Clear</button>
+        </div>
+
+        <div class="result-display" id="calc-result-display">
+          <div class="result-label">Result</div>
+          <div class="result-value" id="calc-result-value" aria-live="polite">
+            <span style="color:var(--text-muted);font-size:0.95rem;font-weight:500">
+              Awaiting calculation…
+            </span>
+          </div>
+          <div class="result-meta" id="calc-result-meta"></div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <footer class="app-footer">
+    <p>Created by <strong>Rishi Bhuva</strong> | <a href="mailto:rish690712@gmail.com">rish690712@gmail.com</a></p>
+    <p class="footer-sub">Marwadi University (2nd Sem)</p>
+  </footer>
+
+</div>
+
+<script>
+  /* ==========================================================
+     MODULE: Initialize Vanta.js (Birds)
+  ========================================================== */
+  document.addEventListener("DOMContentLoaded", function() {
+    VANTA.BIRDS({
+      el: "#vanta-bg",
+      mouseControls: true,
+      touchControls: true,
+      gyroControls: false,
+      minHeight: 200.00,
+      minWidth: 200.00,
+      scale: 1.00,
+      scaleMobile: 1.00,
+      backgroundColor: 0xeafaf1, /* Matches --bg CSS variable */
+      color1: 0x27ae60,          
+      color2: 0x2ecc71,          
+      colorMode: "variance",
+      birdSize: 1.30,
+      wingSpan: 25.00,
+      speedLimit: 4.00,
+      separation: 50.00,
+      alignment: 30.00,
+      cohesion: 30.00,
+      quantity: 4.00
+    });
+  });
+
+  /* ==========================================================
+     MODULE: Tab Navigation
+  ========================================================== */
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.remove('active');
+      btn.setAttribute('aria-selected', 'false');
+    });
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+
+    const btn = document.getElementById(`tab-${name}`);
+    const panel = document.getElementById(`panel-${name}`);
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+    panel.classList.add('active');
+  }
+
+  /* ==========================================================
+     MODULE: Number System Conversion Utilities
+  ========================================================== */
+  const BASE_CHARS = {
+    2:  /^[01]*$/,
+    8:  /^[0-7]*$/,
+    10: /^-?[0-9]*\.?[0-9]*$/,
+    16: /^[0-9A-Fa-f]*$/,
+    bcd:/^[0-9 ]*$/   
+  };
+
+  function parseBase(str, base) {
+    if (!str || str.trim() === '') return NaN;
+    str = str.trim();
+    if (base === 'bcd') return parseBCD(str);
+    base = parseInt(base);
+    if (base === 10) return parseFloat(str);
+
+    const neg = str.startsWith('-');
+    if (neg) str = str.slice(1);
+
+    const parts = str.split('.');
+    let intPart = parseInt(parts[0] || '0', base);
+    let fracPart = 0;
+    if (parts[1]) {
+      for (let i = 0; i < parts[1].length; i++) {
+        fracPart += parseInt(parts[1][i], base) / Math.pow(base, i + 1);
+      }
+    }
+    const result = intPart + fracPart;
+    return neg ? -result : result;
+  }
+
+  function toBase(num, base, fracDigits = 8) {
+    if (isNaN(num)) return '';
+    if (base === 'bcd') return decimalToBCD(num);
+    base = parseInt(base);
+    if (base === 10) return String(parseFloat(num.toPrecision(10)));
+
+    const neg = num < 0;
+    if (neg) num = -num;
+
+    const intPart = Math.floor(num);
+    const fracPart = num - intPart;
+
+    let intStr = intPart.toString(base).toUpperCase();
+    let fracStr = '';
+    if (fracPart > 1e-10) {
+      let frac = fracPart;
+      for (let i = 0; i < fracDigits; i++) {
+        frac *= base;
+        fracStr += Math.floor(frac).toString(base).toUpperCase();
+        frac -= Math.floor(frac);
+        if (frac < 1e-10) break;
+      }
+    }
+    return (neg ? '-' : '') + intStr + (fracStr ? '.' + fracStr : '');
+  }
+
+  function decimalToBCD(num) {
+    num = Math.round(Math.abs(num));
+    if (isNaN(num)) return '';
+    const digits = String(num).split('');
+    return digits.map(d => parseInt(d).toString(2).padStart(4, '0')).join(' ');
+  }
+
+  function parseBCD(bcdStr) {
+    const nibbles = bcdStr.trim().split(/\s+/);
+    let decStr = '';
+    for (const nib of nibbles) {
+      if (!/^[01]{1,4}$/.test(nib)) return NaN;
+      const val = parseInt(nib, 2);
+      if (val > 9) return NaN; 
+      decStr += String(val);
+    }
+    return parseInt(decStr, 10);
+  }
+
+  function isValidInput(val, base) {
+    if (val === '' || val === '-' || val === '.') return true;
+    const pattern = BASE_CHARS[base];
+    return pattern ? pattern.test(val) : false;
+  }
+
+  /* ==========================================================
+     MODULE: Converter Logic
+  ========================================================== */
+  const CONVERTER_FIELDS = [
+    { id: 'conv-bin', base: 2  },
+    { id: 'conv-oct', base: 8  },
+    { id: 'conv-dec', base: 10 },
+    { id: 'conv-hex', base: 16 },
+    { id: 'conv-bcd', base: 'bcd' },
+  ];
+
+  let _converterUpdating = false;
+
+  function onConverterInput(input) {
+    if (_converterUpdating) return;
+    const base = input.dataset.base === 'bcd' ? 'bcd' : parseInt(input.dataset.base);
+    const val  = input.value;
+
+    if (base === 16) input.value = val.toUpperCase();
+
+    if (!isValidInput(val.toUpperCase(), base)) {
+      input.classList.add('error');
+      input.value = val.slice(0, -1);
+      return;
+    }
+
+    input.classList.remove('error');
+
+    if (val.trim() === '') {
+      clearConverterOutputs(input.id);
+      updateBitDisplay('');
+      updateInfoChips(NaN);
+      return;
+    }
+
+    const decimal = parseBase(val, base);
+    if (isNaN(decimal)) {
+      input.classList.add('error');
+      return;
+    }
+
+    _converterUpdating = true;
+    for (const field of CONVERTER_FIELDS) {
+      if (field.id === input.id) continue;
+      const el = document.getElementById(field.id);
+      const converted = toBase(decimal, field.base);
+      el.value = converted;
+      el.classList.remove('error');
+    }
+    _converterUpdating = false;
+
+    updateBitDisplay(decimal);
+    updateInfoChips(decimal);
+  }
+
+  function clearConverterOutputs(activeId) {
+    _converterUpdating = true;
+    for (const field of CONVERTER_FIELDS) {
+      if (field.id === activeId) continue;
+      document.getElementById(field.id).value = '';
+    }
+    _converterUpdating = false;
+    updateInfoChips(NaN);
+  }
+
+  function updateBitDisplay(decimal) {
+    const container = document.getElementById('bit-display');
+    if (decimal === '' || isNaN(decimal)) {
+      container.innerHTML = `<span style="color:var(--text-muted);font-size:0.85rem">Type a number above to visualize its bits…</span>`;
+      return;
+    }
+
+    const intVal = Math.round(Math.abs(decimal));
+    let binStr = intVal.toString(2);
+    const padLen = Math.ceil(binStr.length / 8) * 8 || 8;
+    binStr = binStr.padStart(padLen, '0');
+
+    const chunks = [];
+    for (let i = 0; i < binStr.length; i += 8) {
+      chunks.push(binStr.slice(i, i + 8));
+    }
+
+    container.innerHTML = chunks.map((chunk, ci) => {
+      const bits = chunk.split('').map(b =>
+        `<div class="bit ${b === '1' ? 'one' : 'zero'}">${b}</div>`
+      ).join('');
+      return `<div class="bit-group">${bits}</div>${ci < chunks.length - 1 ? '<div class="bit-sep"></div>' : ''}`;
+    }).join('');
+  }
+
+  function updateInfoChips(decimal) {
+    const setChip = (id, val) => { document.getElementById(id).textContent = val; };
+    if (isNaN(decimal)) {
+      ['chip-dec','chip-bits','chip-bytes','chip-even'].forEach(id => setChip(id, '—'));
+      return;
+    }
+    const intVal = Math.round(Math.abs(decimal));
+    const binStr = intVal.toString(2);
+    const bits   = binStr.length;
+    const bytes  = Math.ceil(bits / 8);
+
+    setChip('chip-dec',   decimal % 1 !== 0 ? decimal.toFixed(6) : decimal.toString());
+    setChip('chip-bits',  `${bits} bit${bits !== 1 ? 's' : ''}`);
+    setChip('chip-bytes', `${bytes} byte${bytes !== 1 ? 's' : ''}`);
+    setChip('chip-even',  Number.isInteger(decimal) ? (intVal % 2 === 0 ? 'Yes' : 'No') : 'N/A');
+  }
+
+  /* ==========================================================
+     MODULE: Calculator Logic
+  ========================================================== */
+  let _selectedOp = '+';
+
+  function selectOp(btn) {
+    document.querySelectorAll('.op-btn').forEach(b => {
+      b.classList.remove('selected');
+      b.setAttribute('aria-pressed', 'false');
+    });
+    btn.classList.add('selected');
+    btn.setAttribute('aria-pressed', 'true');
+    _selectedOp = btn.dataset.op;
+    calculate();
+  }
+
+  function onCalcInputValidate(input) {
+    const base = document.getElementById('calc-input-base').value;
+    const val  = input.value;
+    if (base === '16') input.value = val.toUpperCase();
+    if (!isValidInput(val.toUpperCase(), base === 'bcd' ? 'bcd' : parseInt(base))) {
+      input.classList.add('error');
+      input.value = val.slice(0, -1);
+      return;
+    }
+    input.classList.remove('error');
+  }
+
+  function onCalcBaseChange() {
+    const aEl = document.getElementById('calc-a');
+    const bEl = document.getElementById('calc-b');
+    const base = document.getElementById('calc-input-base').value;
+    [aEl, bEl].forEach(el => {
+      if (el.value && !isValidInput(el.value.toUpperCase(), base === 'bcd' ? 'bcd' : parseInt(base))) {
+        el.value = '';
+        el.classList.remove('error');
+      }
+    });
+  }
+
+  function calculate() {
+    const inputBase  = document.getElementById('calc-input-base').value;
+    const outputBase = document.getElementById('calc-output-base').value;
+    const aRaw = document.getElementById('calc-a').value.trim();
+    const bRaw = document.getElementById('calc-b').value.trim();
+    const op   = _selectedOp;
+
+    const resultDisplay = document.getElementById('calc-result-display');
+    const resultValue   = document.getElementById('calc-result-value');
+    const resultMeta    = document.getElementById('calc-result-meta');
+
+    resultDisplay.classList.remove('has-result', 'has-error');
+
+    if (!aRaw || !bRaw) {
+      resultValue.className = 'result-value';
+      resultValue.innerHTML = `<span style="color:var(--text-muted);font-size:0.95rem;font-weight:500">Awaiting calculation…</span>`;
+      resultMeta.textContent = '';
+      return;
+    }
+
+    const numBase = inputBase === 'bcd' ? 'bcd' : parseInt(inputBase);
+    const a = parseBase(aRaw, numBase);
+    const b = parseBase(bRaw, numBase);
+
+    if (isNaN(a) || isNaN(b)) {
+      resultDisplay.classList.add('has-error');
+      resultValue.className = 'result-value error-val';
+      resultValue.textContent = 'Invalid input';
+      resultMeta.textContent  = '';
+      return;
+    }
+
+    let decimalResult;
+    switch (op) {
+      case '+': decimalResult = a + b; break;
+      case '-': decimalResult = a - b; break;
+      case '*': decimalResult = a * b; break;
+      case '/':
+        if (b === 0) {
+          resultDisplay.classList.add('has-error');
+          resultValue.className = 'result-value error-val';
+          resultValue.textContent = 'Division by Zero';
+          resultMeta.textContent = '';
+          return;
+        }
+        decimalResult = a / b;
+        break;
+      default: return;
+    }
+
+    if (outputBase === 'bcd' && decimalResult % 1 !== 0) {
+      decimalResult = Math.trunc(decimalResult);
+    }
+
+    const outNumBase = outputBase === 'bcd' ? 'bcd' : parseInt(outputBase);
+    const resultStr  = toBase(decimalResult, outNumBase);
+
+    resultDisplay.classList.add('has-result');
+    resultValue.className = 'result-value';
+    resultValue.textContent = resultStr || '0';
+    resultMeta.textContent  =
+      `${aRaw} (${baseLabel(inputBase)}) ${opSymbol(op)} ${bRaw} (${baseLabel(inputBase)}) = ` +
+      `${resultStr} (${baseLabel(outputBase)})`;
+  }
+
+  function clearCalc() {
+    document.getElementById('calc-a').value = '';
+    document.getElementById('calc-b').value = '';
+    document.getElementById('calc-a').classList.remove('error');
+    document.getElementById('calc-b').classList.remove('error');
+
+    const resultDisplay = document.getElementById('calc-result-display');
+    const resultValue   = document.getElementById('calc-result-value');
+    const resultMeta    = document.getElementById('calc-result-meta');
+
+    resultDisplay.classList.remove('has-result', 'has-error');
+    resultValue.className = 'result-value';
+    resultValue.innerHTML = `<span style="color:var(--text-muted);font-size:0.95rem;font-weight:500">Awaiting calculation…</span>`;
+    resultMeta.textContent = '';
+  }
+
+  function baseLabel(base) {
+    const map = { 2: 'Binary', 8: 'Octal', 10: 'Decimal', 16: 'Hexadecimal', bcd: 'BCD' };
+    return map[base] || `Base ${base}`;
+  }
+
+  function opSymbol(op) {
+    return { '+': '+', '-': '−', '*': '×', '/': '÷' }[op] || op;
+  }
+</script>
+</body>
+</html>
